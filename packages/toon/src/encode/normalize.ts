@@ -75,7 +75,7 @@ export function normalizeValue(value: unknown): JsonValue {
     const normalized: Record<string, JsonValue> = {}
 
     for (const key in value) {
-      if (Object.prototype.hasOwnProperty.call(value, key)) {
+      if (Object.hasOwn(value, key)) {
         normalized[key] = normalizeValue(value[key])
       }
     }
