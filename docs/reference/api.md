@@ -482,6 +482,53 @@ for await (const event of decodeStream(rl)) {
 }
 ```
 
+## Error Handling
+
+Decoding throws a `ToonDecodeError` when input cannot be parsed. The class extends `SyntaxError`, so existing `error instanceof SyntaxError` checks keep working without code changes.
+
+### `ToonDecodeError`
+
+```ts
+import { ToonDecodeError } from '@toon-format/toon'
+```
+
+#### Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | `'ToonDecodeError'` | Discriminator – `error.name === 'ToonDecodeError'` |
+| `message` | `string` | Human-readable message; prefixed with `Line N: ` when a line is known |
+| `line` | `number?` | 1-based line number where the error was detected |
+| `source` | `string?` | Raw source line (including its leading whitespace) |
+| `cause` | `unknown?` | The original error when the decoder enriched a lower-level parser failure |
+
+The `line` and `source` fields are populated for every error that has line context – essentially every parse error during normal decoding. The `cause` chain points back to the underlying `SyntaxError` or `TypeError` thrown by the token-level parser, so debuggers and verbose loggers can show the original frame.
+
+#### Example
+
+```ts
+import { decode, ToonDecodeError } from '@toon-format/toon'
+
+try {
+  decode('a:\n\tb: 1')
+}
+catch (error) {
+  if (error instanceof ToonDecodeError) {
+    console.error(`Line ${error.line}:`, error.source)
+    console.error(error.message)
+    // Line 2: 	b: 1
+    // Line 2: Tabs are not allowed in indentation in strict mode
+  }
+  else {
+    throw error
+  }
+}
+```
+
+::: info Backwards Compatibility
+`ToonDecodeError` extends `SyntaxError`. Code written against earlier versions that catches `SyntaxError` continues to match these errors. The class adds structured fields without removing anything.
+:::
+
 ## Configuration Reference
 
 ### `EncodeOptions`
@@ -533,6 +580,8 @@ By default (`strict: true`), the decoder validates input strictly:
 - **Array length mismatches**: Throws when declared length doesn't match actual count
 - **Delimiter mismatches**: Throws when row delimiters don't match header
 - **Indentation errors**: Throws when leading spaces aren't exact multiples of `indent`
+
+All decode errors are thrown as [`ToonDecodeError`](#error-handling) instances with structured `line` and `source` fields.
 
 Set `strict: false` to skip validation for lenient parsing.
 

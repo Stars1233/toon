@@ -156,6 +156,7 @@ When using the `--stats` flag with encode, the CLI builds the full TOON string o
 | `--keyFolding <mode>` | Key folding mode: `off`, `safe` (default: `off`) |
 | `--flattenDepth <number>` | Maximum segments to fold (default: `Infinity`) – requires `--keyFolding safe` |
 | `--expandPaths <mode>` | Path expansion mode: `off`, `safe` (default: `off`) |
+| `--verbose` | Show full stack traces and cause chains for errors (default: `false`) |
 
 ## Advanced Examples
 
@@ -224,6 +225,36 @@ toon data.toon --no-strict -o output.json
 ```
 
 Lenient mode (`--no-strict`) disables strict validation checks like array count matching, indentation multiples, and delimiter consistency. Use this when you trust the input and want faster decoding.
+
+### Decode Error Output
+
+When a TOON document fails to parse, the CLI renders the offending line with a caret pointing at the first non-whitespace character. Tabs are shown as `→` so the caret column reflects what the decoder actually saw.
+
+For an input file that uses a tab to indent the second line (rendered here with `→`):
+
+```
+a:
+→b: 1
+```
+
+The CLI prints:
+
+```
+ ERROR  Failed to decode TOON at line 2: Tabs are not allowed in indentation in strict mode
+
+  2 | →b: 1
+      ^
+```
+
+The exit code is `1` on any error. Stack traces are suppressed by default. Pass `--verbose` to include the full stack and the underlying cause chain – useful when filing a bug report or diagnosing an unexpected error path:
+
+```bash
+cat broken.toon | toon --decode --verbose
+```
+
+::: tip Programmatic Access
+Decode errors are thrown as `ToonDecodeError` instances by the library. The CLI's caret rendering is built on the structured `line` and `source` fields exposed on that class. See the [Error Handling](/reference/api#error-handling) section of the API reference if you want the same diagnostic detail in your own code.
+:::
 
 ### Stdin Workflows
 

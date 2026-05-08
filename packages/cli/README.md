@@ -67,6 +67,7 @@ cat data.toon | toon --decode
 | `--keyFolding <mode>` | Enable key folding: `off`, `safe` (default: `off`) |
 | `--flattenDepth <number>` | Maximum folded segment count when key folding is enabled (default: `Infinity`) |
 | `--expandPaths <mode>` | Enable path expansion: `off`, `safe` (default: `off`) |
+| `--verbose` | Show full stack traces and cause chains for errors (default: `false`) |
 
 ## Advanced Examples
 
@@ -102,6 +103,19 @@ Skip validation for faster processing:
 ```bash
 toon data.toon --no-strict -o output.json
 ```
+
+### Decode Error Output
+
+When a TOON document fails to parse, the CLI renders the offending line with a caret pointing at the first non-whitespace character. Tabs are shown as `→` so the caret column reflects what the decoder actually saw:
+
+```
+ ERROR  Failed to decode TOON at line 2: Tabs are not allowed in indentation in strict mode
+
+  2 | →b: 1
+      ^
+```
+
+The exit code is `1` on any error. Stack traces are suppressed by default. Pass `--verbose` to include the full stack and the underlying cause chain.
 
 ### Stdin Workflows
 
