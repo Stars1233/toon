@@ -622,22 +622,13 @@ type JsonStreamEvent
     | { type: 'primitive', value: JsonPrimitive }
 ```
 
-### JSON Value Types
-
-```ts
-type JsonPrimitive = string | number | boolean | null
-type JsonArray = readonly JsonValue[]
-type JsonObject = { readonly [key: string]: JsonValue }
-type JsonValue = JsonPrimitive | JsonArray | JsonObject
-```
-
 ### Delimiters
 
 ```ts
 import { DEFAULT_DELIMITER, DELIMITERS } from '@toon-format/toon'
 
 DEFAULT_DELIMITER // ','
-DELIMITERS        // { comma: ',', tab: '\t', pipe: '|' }
+DELIMITERS // { comma: ',', tab: '\t', pipe: '|' }
 ```
 
 | Export | Description |
