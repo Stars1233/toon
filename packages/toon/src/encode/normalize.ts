@@ -72,15 +72,15 @@ export function normalizeValue(value: unknown): JsonValue {
 
   // Plain object
   if (isPlainObject(value)) {
-    const normalized: Record<string, JsonValue> = {}
+    const encodedValues: Record<string, JsonValue> = {}
 
     for (const key in value) {
       if (Object.hasOwn(value, key)) {
-        normalized[key] = normalizeValue(value[key])
+        encodedValues[key] = normalizeValue(value[key])
       }
     }
 
-    return normalized
+    return encodedValues
   }
 
   // Fallback: function, symbol, undefined, or other → null
