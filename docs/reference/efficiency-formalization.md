@@ -1,3 +1,7 @@
+---
+description: Mathematical model of TOON's byte-level overhead vs JSON across structure families, with formulas and worked examples.
+---
+
 # TOON vs JSON: Byte-Level Efficiency Model
 
 A mathematical analysis of TOON's byte efficiency compared to JSON across different data structures.
@@ -8,7 +12,7 @@ This page presents a theoretical, character-based comparison between TOON and JS
 
 ## Overview
 
-Large Language Models increasingly rely on structured data for inference and function calling. However, standard formats like JSON introduce significant verbosity that inflates token usage and inference costs. This analysis presents a formal mathematical comparison between TOON and JSON to evaluate whether TOON achieves quantifiable efficiency gains by eliminating structural redundancy.
+Standard JSON introduces structural verbosity that inflates token usage and inference cost. This page formalises a byte-level comparison between TOON and JSON to evaluate whether TOON achieves quantifiable efficiency gains by removing structural redundancy.
 
 Under the assumptions described below (compact JSON, canonical TOON, ASCII keys and punctuation, shallow to moderate nesting, and mostly unquoted TOON strings), TOON's **structural overhead is lower than compact JSON** for the structure families analyzed here, except arrays of arrays.
 
@@ -353,7 +357,7 @@ $$
 
 Arrays of arrays of primitives are where TOON structurally loses: each inner array becomes a list item with its own header, so TOON pays a fixed overhead per inner array (`"- "` plus `"[m]: "`), while JSON just uses commas.
 
-::: tip Practical Note
+::: info Practical Note
 For arrays of arrays of primitives, this model predicts that JSON is more byte-efficient than TOON, because TOON pays ~6 extra bytes per inner array (2 for `"- "`, 4 for `"[m]: "`), plus the length marker.
 :::
 

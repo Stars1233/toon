@@ -1,3 +1,7 @@
+---
+description: Prompting strategies for sending TOON to LLMs and validating TOON they generate, with examples.
+---
+
 # Using TOON with LLMs
 
 TOON is designed for passing structured data to Large Language Models with reduced token costs and improved reliability. This guide shows how to use TOON effectively in prompts, both for input (sending data to models) and output (getting models to generate TOON).
@@ -6,7 +10,7 @@ This guide is about the TOON format itself. Code examples use the TypeScript lib
 
 ## Why TOON for LLMs
 
-LLM tokens cost money, and JSON is verbose – repeating every field name for every record in an array. TOON minimizes tokens especially for uniform arrays by declaring fields once and streaming data as rows, typically saving 30-60% compared to formatted JSON.
+LLM tokens cost money, and JSON is verbose – repeating every field name for every record in an array. TOON minimizes tokens especially for uniform arrays by declaring fields once and streaming data as rows, typically saving 30–60% compared to formatted JSON.
 
 TOON adds structure guardrails: explicit `[N]` lengths and `{fields}` headers make it easier for models to track rows and for you to validate output. Strict mode helps detect truncation and malformed TOON when decoding model responses.
 
@@ -145,9 +149,9 @@ For streaming decode APIs, see [`decodeFromLines()`](/reference/api#decodefromli
 
 ## Tips and Pitfalls
 
-**Show, don't describe.** Don't explain TOON syntax in detail – just show an example. Models learn the pattern from context. A simple code block with 2-5 rows is more effective than paragraphs of explanation.
+**Show, don't describe.** Don't explain TOON syntax in detail – just show an example. Models learn the pattern from context. A simple code block with 2–5 rows is more effective than paragraphs of explanation.
 
-**Keep examples small.** Use 2-5 rows in your examples, not hundreds. The model generalizes from the pattern. Large examples waste tokens without improving accuracy.
+**Keep examples small.** Use 2–5 rows in your examples, not hundreds. The model generalizes from the pattern. Large examples waste tokens without improving accuracy.
 
 **Always validate output.** Decode generated TOON with `strict: true` (default) to catch errors early. Don't assume model output is valid TOON without checking.
 

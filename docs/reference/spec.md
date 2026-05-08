@@ -1,11 +1,15 @@
+---
+description: Guided tour of the TOON specification – sections, conformance checklists, media type, and versioning.
+---
+
 # Specification
 
 The [TOON specification](https://github.com/toon-format/spec) is the authoritative reference for implementing encoders, decoders, and validators. It defines the concrete syntax, normative encoding/decoding behavior, and strict-mode validation rules.
 
 You don't need this page to *use* TOON. It's mainly for implementers and contributors. If you're looking to learn how to use TOON, start with the [Getting Started](/guide/getting-started) guide instead.
 
-> [!TIP]
-> The TOON specification is stable, but also an idea in progress. Nothing's set in stone – help shape where it goes by contributing to it or sharing feedback!
+> [!NOTE]
+> The TOON specification is stable, but also an idea in progress. Nothing's set in stone – help shape where it goes by contributing to it or sharing feedback.
 
 ## Current Version
 

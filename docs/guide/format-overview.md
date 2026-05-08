@@ -1,6 +1,10 @@
+---
+description: TOON syntax with concrete examples – objects, arrays, headers, key folding, and quoting rules.
+---
+
 # Format Overview
 
-TOON syntax reference with concrete examples. See [Getting Started](/guide/getting-started) for introduction.
+TOON syntax reference with concrete examples. See [Getting Started](/guide/getting-started) for an introduction.
 
 ## Data Model
 
@@ -181,7 +185,7 @@ Where:
   - `|` → pipe delimiter
 - **fields** (optional) for tabular arrays: `{field1,field2,field3}`
 
-> [!TIP]
+> [!NOTE]
 > The array length `[N]` helps LLMs validate structure. If you ask a model to generate TOON output, explicit lengths let you detect truncation or malformed data.
 
 ### Delimiter Options
@@ -326,6 +330,8 @@ Numbers are emitted in canonical decimal form (no exponent notation, no trailing
 | `BigInt` (within safe range) | Number |
 | `BigInt` (out of range) | Quoted decimal string (e.g., `"9007199254740993"`) |
 | `Date` | ISO string in quotes (e.g., `"2025-01-01T00:00:00.000Z"`) |
+| `Set` | Array of normalized values |
+| `Map` | Object with `String(key)` keys |
 | `undefined`, `function`, `symbol` | `null` |
 
 Decoders accept both decimal and exponent forms on input (e.g., `42`, `-3.14`, `1e-6`), and treat tokens with forbidden leading zeros (e.g., `"05"`) as strings, not numbers.

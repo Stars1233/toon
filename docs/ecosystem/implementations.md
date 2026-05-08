@@ -1,3 +1,7 @@
+---
+description: Official and community TOON implementations across languages, plus contribution pointers.
+---
+
 # Implementations
 
 TOON has official and community implementations across multiple programming languages. All implementations are intended to conform to the same [Specification](https://github.com/toon-format/spec) to ensure compatibility and interoperability.
@@ -56,5 +60,5 @@ Building a TOON implementation for a new language? Great! Here are some steps to
 
 1. **Follow the spec**: Implement the [latest specification](https://github.com/toon-format/spec/blob/main/SPEC.md).
 2. **Add tests**: Run the [reference test suite](https://github.com/toon-format/spec/tree/main/tests).
-3. **Document usage**: Provide clear README with installation and usage examples.
+3. **Document usage**: Provide a clear README with installation and usage examples.
 4. **Share it**: Open a PR to add your implementation to the README at [github.com/toon-format/toon](https://github.com/toon-format/toon).

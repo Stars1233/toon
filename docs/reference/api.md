@@ -1,3 +1,7 @@
+---
+description: TypeScript and JavaScript encode and decode functions, options, error types, and streaming decoders for @toon-format/toon.
+---
+
 # API Reference
 
 TypeScript/JavaScript API documentation for the `@toon-format/toon` package. For format rules, see the [Format Overview](/guide/format-overview) or the [Specification](/reference/spec). For other languages, see [Implementations](/ecosystem/implementations).
@@ -60,6 +64,8 @@ Non-JSON-serializable values are normalized before encoding:
 | `BigInt` (within safe range) | Number |
 | `BigInt` (out of range) | Quoted decimal string (e.g., `"9007199254740993"`) |
 | `Date` | ISO string in quotes (e.g., `"2025-01-01T00:00:00.000Z"`) |
+| `Set` | Array of normalized values |
+| `Map` | Object with `String(key)` keys |
 | `undefined`, `function`, `symbol` | `null` |
 
 #### Example
@@ -251,7 +257,7 @@ user:
   created: 2025-01-02
 ```
 
-::: tip Replacer Execution Order
+::: info Replacer Execution Order
 The replacer is called in a depth-first manner:
 1. Root value first (key = `''`, path = `[]`)
 2. Then each property/element (with proper key and path)
@@ -614,9 +620,43 @@ type JsonStreamEvent
     | { type: 'endArray' }
     | { type: 'key', key: string, wasQuoted?: boolean }
     | { type: 'primitive', value: JsonPrimitive }
-
-type JsonPrimitive = string | number | boolean | null
 ```
+
+### JSON Value Types
+
+```ts
+type JsonPrimitive = string | number | boolean | null
+type JsonArray = readonly JsonValue[]
+type JsonObject = { readonly [key: string]: JsonValue }
+type JsonValue = JsonPrimitive | JsonArray | JsonObject
+```
+
+### Delimiters
+
+```ts
+import { DEFAULT_DELIMITER, DELIMITERS } from '@toon-format/toon'
+
+DEFAULT_DELIMITER // ','
+DELIMITERS        // { comma: ',', tab: '\t', pipe: '|' }
+```
+
+| Export | Description |
+|--------|-------------|
+| `DEFAULT_DELIMITER` | The default delimiter character (`,`) used when none is specified |
+| `DELIMITERS` | Frozen record mapping delimiter names to their characters |
+| `Delimiter` | Type union of valid delimiter characters: `',' \| '\t' \| '\|'` |
+| `DelimiterKey` | Type union of delimiter names: `'comma' \| 'tab' \| 'pipe'` |
+
+### Option Types
+
+| Export | Description |
+|--------|-------------|
+| `EncodeOptions` | Options accepted by [`encode()`](#encode-input-options) and [`encodeLines()`](#encodelines-input-options) |
+| `DecodeOptions` | Options accepted by [`decode()`](#decode-input-options) and [`decodeFromLines()`](#decodefromlines-lines-options) |
+| `DecodeStreamOptions` | Options accepted by [`decodeStreamSync()`](#decodestreamsync-lines-options) and [`decodeStream()`](#decodestream-source-options) |
+| `EncodeReplacer` | Signature of the [replacer function](#replacer-function) |
+| `ResolvedEncodeOptions` | `EncodeOptions` after defaults are applied (advanced) |
+| `ResolvedDecodeOptions` | `DecodeOptions` after defaults are applied (advanced) |
 
 ## Guides & Examples
 
@@ -702,7 +742,7 @@ When multiple expanded keys construct overlapping paths, the decoder merges them
 
 ### Delimiter Strategies
 
-Tab delimiters (`\t`) often tokenize more efficiently than commas, as Tabs are single characters that rarely appear in natural text. This reduces the need for quote-escaping, leading to smaller token counts in large datasets.
+Tab delimiters (`\t`) often tokenize more efficiently than commas. Tabs are single characters that rarely appear in natural text, which reduces the need for quote-escaping and leads to smaller token counts in large datasets.
 
 Example:
 

@@ -127,7 +127,7 @@ hikes[3]{id,name,distanceKm,elevationGain,companion,wasSunny}:
 
 ## Key Features
 
-- 📊 **Token-Efficient & Accurate:** TOON reaches 74% accuracy (vs JSON's 70%) while using ~40% fewer tokens in mixed-structure benchmarks across 4 models.
+- 📊 **Token-Efficient & Accurate:** TOON reaches 76.4% accuracy (vs JSON's 75.0%) while using ~40% fewer tokens in mixed-structure benchmarks across 4 models.
 - 🔁 **JSON Data Model:** Encodes the same objects, arrays, and primitives as JSON with deterministic, lossless round-trips.
 - 🛤️ **LLM-Friendly Guardrails:** Explicit [N] lengths and {fields} headers give models a clear schema to follow, improving parsing reliability.
 - 📐 **Minimal Syntax:** Uses indentation instead of braces and minimizes quoting, giving YAML-like readability with CSV-style compactness.
@@ -144,7 +144,7 @@ TOON excels with uniform arrays of objects, but there are cases where other form
 
 - **Deeply nested or non-uniform structures** (tabular eligibility ≈ 0%): JSON-compact often uses fewer tokens. Example: complex configuration objects with many nested levels.
 - **Semi-uniform arrays** (~40–60% tabular eligibility): Token savings diminish. Prefer JSON if your pipelines already rely on it.
-- **Pure tabular data**: CSV is smaller than TOON for flat tables. TOON adds minimal overhead (~5-10%) to provide structure (array length declarations, field headers, delimiter scoping) that improves LLM reliability.
+- **Pure tabular data**: CSV is smaller than TOON for flat tables. TOON adds minimal overhead (~5–10%) to provide structure (array length declarations, field headers, delimiter scoping) that improves LLM reliability.
 - **Latency-critical applications**: If end-to-end response time is your top priority, benchmark on your exact setup. Some deployments (especially local/quantized models like Ollama) may process compact JSON faster despite TOON's lower token count. Measure TTFT, tokens/sec, and total time for both formats and use whichever is faster.
 
 See [benchmarks](#benchmarks) for concrete comparisons across different data structures.
@@ -828,7 +828,7 @@ The [TOON Playground](https://toonformat.dev/playground) lets you convert JSON t
 
 ### VS Code
 
-[TOON Language Support](https://marketplace.visualstudio.com/items?itemName=vishalraut.vscode-toon) - Syntax highlighting, validation, conversion, and token analysis.
+[TOON Language Support](https://marketplace.visualstudio.com/items?itemName=vishalraut.vscode-toon) – Syntax highlighting, validation, conversion, and token analysis.
 
 ```bash
 code --install-extension vishalraut.vscode-toon
@@ -836,11 +836,11 @@ code --install-extension vishalraut.vscode-toon
 
 ### Tree-sitter Grammar
 
-[tree-sitter-toon](https://github.com/3swordman/tree-sitter-toon) - Grammar for Tree-sitter-compatible editors (Neovim, Helix, Emacs, Zed).
+[tree-sitter-toon](https://github.com/3swordman/tree-sitter-toon) – Grammar for Tree-sitter-compatible editors (Neovim, Helix, Emacs, Zed).
 
 ### Neovim
 
-[toon.nvim](https://github.com/thalesgelinger/toon.nvim) - Lua-based plugin.
+[toon.nvim](https://github.com/thalesgelinger/toon.nvim) – Lua-based plugin.
 
 ### Other Editors
 
@@ -897,7 +897,7 @@ Comprehensive guides, references, and resources to help you get the most out of 
 
 ### Tools & Integration
 
-- [CLI](https://toonformat.dev/cli/) – Command-line tool for  JSON↔TOON conversions
+- [CLI](https://toonformat.dev/cli/) – Command-line tool for JSON↔TOON conversions
 - [Using TOON with LLMs](https://toonformat.dev/guide/llm-prompts) – Prompting strategies & validation
 - [Playgrounds](https://toonformat.dev/ecosystem/tools-and-playgrounds) – Interactive tools
 

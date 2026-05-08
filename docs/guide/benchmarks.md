@@ -1,3 +1,7 @@
+---
+description: Retrieval accuracy and token efficiency results for TOON across mixed-structure and flat-only tracks.
+---
+
 # Benchmarks
 
 The benchmarks on this page measure TOON's performance across two key dimensions:

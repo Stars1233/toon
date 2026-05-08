@@ -1,3 +1,7 @@
+---
+description: JSON-to-TOON mappings at a glance for objects, arrays, quoting, key folding, and type conversions.
+---
+
 # Syntax Cheatsheet
 
 Quick reference for mapping JSON to TOON format. For rigorous, normative syntax rules and edge cases, see the [Specification](/reference/spec).
@@ -78,7 +82,7 @@ items[2]{id,qty}:
 
 :::
 
-## Mixed / Non-Uniform Arrays
+## Mixed and Non-Uniform Arrays
 
 ::: code-group
 
@@ -352,4 +356,6 @@ See [Format Overview – Key Folding](/guide/format-overview#key-folding-optiona
 | `BigInt` (safe range) | Number |
 | `BigInt` (out of range) | Quoted decimal string |
 | `Date` | ISO string (quoted) |
+| `Set` | Array of normalized values |
+| `Map` | Object with `String(key)` keys |
 | `undefined`, `function`, `symbol` | `null` |

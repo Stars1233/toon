@@ -60,7 +60,7 @@ cat data.toon | toon --decode
 | `-o, --output <file>` | Output file path (prints to stdout if omitted) |
 | `-e, --encode` | Force encode mode (overrides auto-detection) |
 | `-d, --decode` | Force decode mode (overrides auto-detection) |
-| `--delimiter <char>` | Array delimiter: `,` (comma), `\t` (tab), `\|` (pipe) |
+| `--delimiter <char>` | Array delimiter: `,` (comma), tab character, `\|` (pipe). Pass tab as `$'\t'` in bash/zsh |
 | `--indent <number>` | Indentation size (default: `2`) |
 | `--stats` | Show token count estimates and savings (encode only) |
 | `--no-strict` | Disable strict validation when decoding |
@@ -93,8 +93,10 @@ Example output:
 #### Tab-separated (often more token-efficient)
 
 ```bash
-toon data.json --delimiter "\t" -o output.toon
+toon data.json --delimiter $'\t' -o output.toon
 ```
+
+The `--delimiter` value must be the actual delimiter character. In bash/zsh, use `$'\t'` to pass a real tab; literal `"\t"` is rejected as an invalid delimiter.
 
 ### Lenient Decoding
 
@@ -124,7 +126,7 @@ The exit code is `1` on any error. Stack traces are suppressed by default. Pass 
 curl https://api.example.com/data | toon --stats
 
 # Process large dataset
-cat large-dataset.json | toon --delimiter "\t" > output.toon
+cat large-dataset.json | toon --delimiter $'\t' > output.toon
 
 # Chain with other tools
 jq '.results' data.json | toon > filtered.toon
@@ -152,7 +154,7 @@ cat million-records.toon | toon --decode > output.json
 - Peak memory usage scales with data depth, not total size
 - When `--expandPaths safe` is enabled, decode falls back to non-streaming mode internally to apply deep-merge expansion before writing JSON
 
-> [!NOTE]
+> [!TIP]
 > When using `--stats` with encode, the full output string is kept in memory for token counting. Omit `--stats` for maximum memory efficiency with very large datasets.
 
 ### Key Folding (Since v1.5)
@@ -220,7 +222,7 @@ diff input.json output.json
 
 ```bash
 # Key folding + tab delimiter + stats
-toon data.json --keyFolding safe --delimiter "\t" --stats -o output.toon
+toon data.json --keyFolding safe --delimiter $'\t' --stats -o output.toon
 ```
 
 ## Why Use the CLI?
@@ -234,9 +236,9 @@ toon data.json --keyFolding safe --delimiter "\t" --stats -o output.toon
 
 ## Related
 
-- [@toon-format/toon](https://www.npmjs.com/package/@toon-format/toon) - JavaScript/TypeScript library
-- [Full specification](https://github.com/toon-format/spec) - Complete format documentation
-- [Website](https://toonformat.dev) - Interactive examples and guides
+- [@toon-format/toon](https://www.npmjs.com/package/@toon-format/toon) – JavaScript/TypeScript library
+- [Full specification](https://github.com/toon-format/spec) – Complete format documentation
+- [Website](https://toonformat.dev) – Interactive examples and guides
 
 ## License
 

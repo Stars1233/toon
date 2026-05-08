@@ -1,8 +1,12 @@
+---
+description: Convert JSON to TOON and back from the command line, with token statistics, streaming, and delimiter options.
+---
+
 # Command Line Interface
 
-The `@toon-format/cli` package provides a command-line interface for encoding JSON to TOON and decoding TOON back to JSON. Use it to analyze token savings before integrating TOON into your application, or to process JSON data through TOON in shell pipelines using stdin/stdout with tools like curl and jq. The CLI supports token statistics, streaming for large datasets, and all encoding options available in the library.
+The `@toon-format/cli` package converts JSON to TOON and TOON to JSON. Use it to measure token savings before integrating TOON into your application, or to pipe JSON through TOON in shell workflows alongside tools like `curl` and `jq`. The CLI supports stdin/stdout, token statistics, streaming for large datasets, and every encoding option in the library.
 
-The CLI is built on top of the `@toon-format/toon` TypeScript implementation and adheres to the [latest specification](/reference/spec).
+The CLI is built on the `@toon-format/toon` TypeScript implementation and follows the [latest specification](/reference/spec).
 
 ## Usage
 
@@ -138,7 +142,7 @@ cat million-records.toon | toon --decode > output.json
 
 Peak memory usage scales with data depth, not total size. This allows processing arbitrarily large files as long as individual nested structures fit in memory.
 
-::: info Token Statistics
+::: tip Token Statistics
 When using the `--stats` flag with encode, the CLI builds the full TOON string once to compute accurate token counts. For maximum memory efficiency on very large files, omit `--stats`.
 :::
 
@@ -149,7 +153,7 @@ When using the `--stats` flag with encode, the CLI builds the full TOON string o
 | `-o, --output <file>` | Output file path (prints to stdout if omitted) |
 | `-e, --encode` | Force encode mode (overrides auto-detection) |
 | `-d, --decode` | Force decode mode (overrides auto-detection) |
-| `--delimiter <char>` | Array delimiter: `,` (comma), `\t` (tab), `\|` (pipe) |
+| `--delimiter <char>` | Array delimiter: `,` (comma), tab character, `\|` (pipe). Pass tab as `$'\t'` in bash/zsh |
 | `--indent <number>` | Indentation size (default: `2`) |
 | `--stats` | Show token count estimates and savings (encode only) |
 | `--no-strict` | Disable strict validation when decoding |
@@ -181,12 +185,12 @@ Example output:
 
 ### Alternative Delimiters
 
-TOON supports three delimiters: comma (default), tab, and pipe. Alternative delimiters can provide additional token savings in specific contexts.
+TOON supports three delimiters: comma (default), tab, and pipe. Alternative delimiters can save additional tokens depending on the data.
 
 ::: code-group
 
-```bash [Tab-separated]
-toon data.json --delimiter "\t" -o output.toon
+```bash [Tab-separated (bash/zsh)]
+toon data.json --delimiter $'\t' -o output.toon
 ```
 
 ```bash [Pipe-separated]
@@ -194,6 +198,8 @@ toon data.json --delimiter "|" -o output.toon
 ```
 
 :::
+
+The `--delimiter` value must be the actual delimiter character. In bash/zsh, use `$'\t'` to pass a real tab; literal `"\t"` is rejected as an invalid delimiter.
 
 **Tab delimiter example:**
 
@@ -213,8 +219,9 @@ items[2]{id,name,qty,price}:
 
 :::
 
-> [!TIP]
-> Tab delimiters often tokenize more efficiently than commas and reduce the need for quote-escaping. Use `--delimiter "\t"` for maximum token savings on large tabular data.
+::: tip
+Tab delimiters often tokenize more efficiently than commas and reduce the need for quote-escaping. Use `--delimiter $'\t'` (bash/zsh) for maximum token savings on large tabular data. See [Delimiter Strategies](/reference/api#delimiter-strategies) for full guidance.
+:::
 
 ### Lenient Decoding
 
@@ -265,7 +272,7 @@ The CLI integrates seamlessly with Unix pipes and other command-line tools:
 curl https://api.example.com/data | toon --stats
 
 # Process large dataset
-cat large-dataset.json | toon --delimiter "\t" > output.toon
+cat large-dataset.json | toon --delimiter $'\t' > output.toon
 
 # Chain with jq
 jq '.results' data.json | toon > filtered.toon
@@ -344,5 +351,5 @@ Combine multiple options for maximum efficiency:
 
 ```bash
 # Key folding + tab delimiter + stats
-toon data.json --keyFolding safe --delimiter "\t" --stats -o output.toon
+toon data.json --keyFolding safe --delimiter $'\t' --stats -o output.toon
 ```
