@@ -2,6 +2,7 @@ import type { ArrayHeaderInfo, DecodeStreamOptions, Depth, JsonPrimitive, JsonSt
 import type { StreamingScanState } from './scanner.ts'
 import { COLON, DEFAULT_DELIMITER, LIST_ITEM_MARKER, LIST_ITEM_PREFIX } from '../constants.ts'
 import { findClosingQuote } from '../shared/string-utils.ts'
+import { ToonDecodeError, withLine } from './errors.ts'
 import { isArrayHeaderContent, isKeyValueContent, mapRowValuesToPrimitives, parseArrayHeaderLine, parseDelimitedValues, parseKeyToken, parsePrimitiveToken } from './parser.ts'
 import { createScanState, parseLinesAsync, parseLinesSync } from './scanner.ts'
 import { assertExpectedCount, validateNoBlankLinesInRange, validateNoExtraListItems, validateNoExtraTabularRows } from './validation.ts'
@@ -141,10 +142,10 @@ export function* decodeStreamSync(
 
   // Check for root array
   if (isArrayHeaderContent(first.content)) {
-    const headerInfo = parseArrayHeaderLine(first.content, DEFAULT_DELIMITER)
+    const headerInfo = withLine(first, () => parseArrayHeaderLine(first.content, DEFAULT_DELIMITER))
     if (headerInfo) {
       cursor.advanceSync()
-      yield* decodeArrayFromHeaderSync(headerInfo.header, headerInfo.inlineValues, cursor, 0, resolvedOptions)
+      yield* decodeArrayFromHeaderSync(headerInfo.header, headerInfo.inlineValues, cursor, 0, resolvedOptions, first)
       return
     }
   }
@@ -154,13 +155,13 @@ export function* decodeStreamSync(
   const hasMore = !cursor.atEndSync()
   if (!hasMore && !isKeyValueLineSync(first)) {
     // Single non-key-value line is root primitive
-    yield { type: 'primitive', value: parsePrimitiveToken(first.content.trim()) }
+    yield { type: 'primitive', value: withLine(first, () => parsePrimitiveToken(first.content.trim())) }
     return
   }
 
   // Root object
   yield { type: 'startObject' }
-  yield* decodeKeyValueSync(first.content, cursor, 0, resolvedOptions)
+  yield* decodeKeyValueSync(first, cursor, 0, resolvedOptions)
 
   // Process remaining object fields
   while (!cursor.atEndSync()) {
@@ -170,28 +171,30 @@ export function* decodeStreamSync(
     }
 
     cursor.advanceSync()
-    yield* decodeKeyValueSync(line.content, cursor, 0, resolvedOptions)
+    yield* decodeKeyValueSync(line, cursor, 0, resolvedOptions)
   }
 
   yield { type: 'endObject' }
 }
 
 function* decodeKeyValueSync(
-  content: string,
+  line: ParsedLine,
   cursor: StreamingLineCursor,
   baseDepth: Depth,
   options: DecoderContext,
 ): Generator<JsonStreamEvent> {
+  const content = line.content
+
   // Check for array header first
-  const arrayHeader = parseArrayHeaderLine(content, DEFAULT_DELIMITER)
+  const arrayHeader = withLine(line, () => parseArrayHeaderLine(content, DEFAULT_DELIMITER))
   if (arrayHeader && arrayHeader.header.key !== undefined) {
     yield { type: 'key', key: arrayHeader.header.key }
-    yield* decodeArrayFromHeaderSync(arrayHeader.header, arrayHeader.inlineValues, cursor, baseDepth, options)
+    yield* decodeArrayFromHeaderSync(arrayHeader.header, arrayHeader.inlineValues, cursor, baseDepth, options, line)
     return
   }
 
   // Regular key-value pair
-  const { key, isQuoted } = parseKeyToken(content, 0)
+  const { key, isQuoted } = withLine(line, () => parseKeyToken(content, 0))
   const colonIndex = content.indexOf(COLON, key.length)
   const rest = colonIndex >= 0 ? content.slice(colonIndex + 1).trim() : ''
 
@@ -214,7 +217,7 @@ function* decodeKeyValueSync(
   }
 
   // Inline primitive value
-  yield { type: 'primitive', value: parsePrimitiveToken(rest) }
+  yield { type: 'primitive', value: withLine(line, () => parsePrimitiveToken(rest)) }
 }
 
 function* decodeObjectFieldsSync(
@@ -236,7 +239,7 @@ function* decodeObjectFieldsSync(
 
     if (line.depth === computedDepth) {
       cursor.advanceSync()
-      yield* decodeKeyValueSync(line.content, cursor, computedDepth, options)
+      yield* decodeKeyValueSync(line, cursor, computedDepth, options)
     }
     else {
       break
@@ -250,25 +253,26 @@ function* decodeArrayFromHeaderSync(
   cursor: StreamingLineCursor,
   baseDepth: Depth,
   options: DecoderContext,
+  headerLine: ParsedLine,
 ): Generator<JsonStreamEvent> {
   yield { type: 'startArray', length: header.length }
 
   // Inline primitive array
   if (inlineValues) {
-    yield* decodeInlinePrimitiveArraySync(header, inlineValues, options)
+    yield* decodeInlinePrimitiveArraySync(header, inlineValues, options, headerLine)
     yield { type: 'endArray' }
     return
   }
 
   // Tabular array
   if (header.fields && header.fields.length > 0) {
-    yield* decodeTabularArraySync(header, cursor, baseDepth, options)
+    yield* decodeTabularArraySync(header, cursor, baseDepth, options, headerLine)
     yield { type: 'endArray' }
     return
   }
 
   // List array
-  yield* decodeListArraySync(header, cursor, baseDepth, options)
+  yield* decodeListArraySync(header, cursor, baseDepth, options, headerLine)
   yield { type: 'endArray' }
 }
 
@@ -276,16 +280,17 @@ function* decodeInlinePrimitiveArraySync(
   header: ArrayHeaderInfo,
   inlineValues: string,
   options: DecoderContext,
+  headerLine: ParsedLine,
 ): Generator<JsonStreamEvent> {
   if (!inlineValues.trim()) {
-    assertExpectedCount(0, header.length, 'inline array items', options)
+    assertExpectedCount(0, header.length, 'inline array items', options, headerLine)
     return
   }
 
-  const values = parseDelimitedValues(inlineValues, header.delimiter)
-  const primitives = mapRowValuesToPrimitives(values)
+  const values = withLine(headerLine, () => parseDelimitedValues(inlineValues, header.delimiter))
+  const primitives = withLine(headerLine, () => mapRowValuesToPrimitives(values))
 
-  assertExpectedCount(primitives.length, header.length, 'inline array items', options)
+  assertExpectedCount(primitives.length, header.length, 'inline array items', options, headerLine)
 
   for (const primitive of primitives) {
     yield { type: 'primitive', value: primitive }
@@ -297,11 +302,13 @@ function* decodeTabularArraySync(
   cursor: StreamingLineCursor,
   baseDepth: Depth,
   options: DecoderContext,
+  headerLine: ParsedLine,
 ): Generator<JsonStreamEvent> {
   const rowDepth = baseDepth + 1
   let rowCount = 0
   let startLine: number | undefined
   let endLine: number | undefined
+  let lastRowLine: ParsedLine = headerLine
 
   while (!cursor.atEndSync() && rowCount < header.length) {
     const line = cursor.peekSync()
@@ -314,12 +321,13 @@ function* decodeTabularArraySync(
         startLine = line.lineNumber
       }
       endLine = line.lineNumber
+      lastRowLine = line
 
       cursor.advanceSync()
-      const values = parseDelimitedValues(line.content, header.delimiter)
-      assertExpectedCount(values.length, header.fields!.length, 'tabular row values', options)
+      const values = withLine(line, () => parseDelimitedValues(line.content, header.delimiter))
+      assertExpectedCount(values.length, header.fields!.length, 'tabular row values', options, line)
 
-      const primitives = mapRowValuesToPrimitives(values)
+      const primitives = withLine(line, () => mapRowValuesToPrimitives(values))
       yield* yieldObjectFromFields(header.fields!, primitives)
 
       rowCount++
@@ -329,7 +337,7 @@ function* decodeTabularArraySync(
     }
   }
 
-  assertExpectedCount(rowCount, header.length, 'tabular rows', options)
+  assertExpectedCount(rowCount, header.length, 'tabular rows', options, lastRowLine)
 
   if (options.strict && startLine !== undefined && endLine !== undefined) {
     validateNoBlankLinesInRange(startLine, endLine, cursor.getBlankLines(), options.strict, 'tabular array')
@@ -346,11 +354,13 @@ function* decodeListArraySync(
   cursor: StreamingLineCursor,
   baseDepth: Depth,
   options: DecoderContext,
+  headerLine: ParsedLine,
 ): Generator<JsonStreamEvent> {
   const itemDepth = baseDepth + 1
   let itemCount = 0
   let startLine: number | undefined
   let endLine: number | undefined
+  let lastItemLine: ParsedLine = headerLine
 
   while (!cursor.atEndSync() && itemCount < header.length) {
     const line = cursor.peekSync()
@@ -365,12 +375,14 @@ function* decodeListArraySync(
         startLine = line.lineNumber
       }
       endLine = line.lineNumber
+      lastItemLine = line
 
       yield* decodeListItemSync(cursor, itemDepth, options)
 
       const currentLine = cursor.current()
       if (currentLine) {
         endLine = currentLine.lineNumber
+        lastItemLine = currentLine
       }
 
       itemCount++
@@ -380,7 +392,7 @@ function* decodeListArraySync(
     }
   }
 
-  assertExpectedCount(itemCount, header.length, 'list array items', options)
+  assertExpectedCount(itemCount, header.length, 'list array items', options, lastItemLine)
 
   if (options.strict && startLine !== undefined && endLine !== undefined) {
     validateNoBlankLinesInRange(startLine, endLine, cursor.getBlankLines(), options.strict, 'list array')
@@ -414,7 +426,10 @@ function* decodeListItemSync(
     afterHyphen = line.content.slice(LIST_ITEM_PREFIX.length)
   }
   else {
-    throw new SyntaxError(`Expected list item to start with "${LIST_ITEM_PREFIX}"`)
+    throw new ToonDecodeError(
+      `Expected list item to start with "${LIST_ITEM_PREFIX}"`,
+      { line: line.lineNumber, source: line.raw },
+    )
   }
 
   if (!afterHyphen.trim()) {
@@ -423,17 +438,19 @@ function* decodeListItemSync(
     return
   }
 
+  const itemLine: ParsedLine = { ...line, content: afterHyphen }
+
   // Check for array header after hyphen
   if (isArrayHeaderContent(afterHyphen)) {
-    const arrayHeader = parseArrayHeaderLine(afterHyphen, DEFAULT_DELIMITER)
+    const arrayHeader = withLine(itemLine, () => parseArrayHeaderLine(afterHyphen, DEFAULT_DELIMITER))
     if (arrayHeader) {
-      yield* decodeArrayFromHeaderSync(arrayHeader.header, arrayHeader.inlineValues, cursor, baseDepth, options)
+      yield* decodeArrayFromHeaderSync(arrayHeader.header, arrayHeader.inlineValues, cursor, baseDepth, options, itemLine)
       return
     }
   }
 
   // Check for tabular-first list-item object: `- key[N]{fields}:`
-  const headerInfo = parseArrayHeaderLine(afterHyphen, DEFAULT_DELIMITER)
+  const headerInfo = withLine(itemLine, () => parseArrayHeaderLine(afterHyphen, DEFAULT_DELIMITER))
   if (headerInfo && headerInfo.header.key !== undefined && headerInfo.header.fields !== undefined) {
     // Object with tabular array as first field
     const header = headerInfo.header
@@ -441,7 +458,7 @@ function* decodeListItemSync(
     yield { type: 'key', key: header.key! }
 
     // Use baseDepth + 1 for the array so rows are at baseDepth + 2
-    yield* decodeArrayFromHeaderSync(header, headerInfo.inlineValues, cursor, baseDepth + 1, options)
+    yield* decodeArrayFromHeaderSync(header, headerInfo.inlineValues, cursor, baseDepth + 1, options, itemLine)
 
     // Read sibling fields at depth = baseDepth + 1
     const followDepth = baseDepth + 1
@@ -453,7 +470,7 @@ function* decodeListItemSync(
 
       if (nextLine.depth === followDepth && !nextLine.content.startsWith(LIST_ITEM_PREFIX)) {
         cursor.advanceSync()
-        yield* decodeKeyValueSync(nextLine.content, cursor, followDepth, options)
+        yield* decodeKeyValueSync(nextLine, cursor, followDepth, options)
       }
       else {
         break
@@ -467,7 +484,7 @@ function* decodeListItemSync(
   // Check for object first field after hyphen
   if (isKeyValueContent(afterHyphen)) {
     yield { type: 'startObject' }
-    yield* decodeKeyValueSync(afterHyphen, cursor, baseDepth + 1, options)
+    yield* decodeKeyValueSync(itemLine, cursor, baseDepth + 1, options)
 
     // Read subsequent fields
     const followDepth = baseDepth + 1
@@ -479,7 +496,7 @@ function* decodeListItemSync(
 
       if (nextLine.depth === followDepth && !nextLine.content.startsWith(LIST_ITEM_PREFIX)) {
         cursor.advanceSync()
-        yield* decodeKeyValueSync(nextLine.content, cursor, followDepth, options)
+        yield* decodeKeyValueSync(nextLine, cursor, followDepth, options)
       }
       else {
         break
@@ -491,7 +508,7 @@ function* decodeListItemSync(
   }
 
   // Primitive value
-  yield { type: 'primitive', value: parsePrimitiveToken(afterHyphen) }
+  yield { type: 'primitive', value: withLine(itemLine, () => parsePrimitiveToken(afterHyphen)) }
 }
 
 function isKeyValueLineSync(line: ParsedLine): boolean {
@@ -544,10 +561,10 @@ export async function* decodeStream(
 
     // Check for root array
     if (isArrayHeaderContent(first.content)) {
-      const headerInfo = parseArrayHeaderLine(first.content, DEFAULT_DELIMITER)
+      const headerInfo = withLine(first, () => parseArrayHeaderLine(first.content, DEFAULT_DELIMITER))
       if (headerInfo) {
         await cursor.advance()
-        yield* decodeArrayFromHeaderAsync(headerInfo.header, headerInfo.inlineValues, cursor, 0, resolvedOptions)
+        yield* decodeArrayFromHeaderAsync(headerInfo.header, headerInfo.inlineValues, cursor, 0, resolvedOptions, first)
         return
       }
     }
@@ -556,13 +573,13 @@ export async function* decodeStream(
     await cursor.advance()
     const hasMore = !(await cursor.atEnd())
     if (!hasMore && !isKeyValueLineSync(first)) {
-      yield { type: 'primitive', value: parsePrimitiveToken(first.content.trim()) }
+      yield { type: 'primitive', value: withLine(first, () => parsePrimitiveToken(first.content.trim())) }
       return
     }
 
     // Root object
     yield { type: 'startObject' }
-    yield* decodeKeyValueAsync(first.content, cursor, 0, resolvedOptions)
+    yield* decodeKeyValueAsync(first, cursor, 0, resolvedOptions)
 
     // Process remaining object fields
     while (!(await cursor.atEnd())) {
@@ -571,7 +588,7 @@ export async function* decodeStream(
         break
       }
       await cursor.advance()
-      yield* decodeKeyValueAsync(line.content, cursor, 0, resolvedOptions)
+      yield* decodeKeyValueAsync(line, cursor, 0, resolvedOptions)
     }
 
     yield { type: 'endObject' }
@@ -583,21 +600,23 @@ export async function* decodeStream(
 }
 
 async function* decodeKeyValueAsync(
-  content: string,
+  line: ParsedLine,
   cursor: StreamingLineCursor,
   baseDepth: Depth,
   options: DecoderContext,
 ): AsyncGenerator<JsonStreamEvent> {
+  const content = line.content
+
   // Check for array header first
-  const arrayHeader = parseArrayHeaderLine(content, DEFAULT_DELIMITER)
+  const arrayHeader = withLine(line, () => parseArrayHeaderLine(content, DEFAULT_DELIMITER))
   if (arrayHeader && arrayHeader.header.key !== undefined) {
     yield { type: 'key', key: arrayHeader.header.key }
-    yield* decodeArrayFromHeaderAsync(arrayHeader.header, arrayHeader.inlineValues, cursor, baseDepth, options)
+    yield* decodeArrayFromHeaderAsync(arrayHeader.header, arrayHeader.inlineValues, cursor, baseDepth, options, line)
     return
   }
 
   // Regular key-value pair
-  const { key, isQuoted } = parseKeyToken(content, 0)
+  const { key, isQuoted } = withLine(line, () => parseKeyToken(content, 0))
   const colonIndex = content.indexOf(COLON, key.length)
   const rest = colonIndex >= 0 ? content.slice(colonIndex + 1).trim() : ''
 
@@ -620,7 +639,7 @@ async function* decodeKeyValueAsync(
   }
 
   // Inline primitive value
-  yield { type: 'primitive', value: parsePrimitiveToken(rest) }
+  yield { type: 'primitive', value: withLine(line, () => parsePrimitiveToken(rest)) }
 }
 
 async function* decodeObjectFieldsAsync(
@@ -642,7 +661,7 @@ async function* decodeObjectFieldsAsync(
 
     if (line.depth === computedDepth) {
       await cursor.advance()
-      yield* decodeKeyValueAsync(line.content, cursor, computedDepth, options)
+      yield* decodeKeyValueAsync(line, cursor, computedDepth, options)
     }
     else {
       break
@@ -656,25 +675,26 @@ async function* decodeArrayFromHeaderAsync(
   cursor: StreamingLineCursor,
   baseDepth: Depth,
   options: DecoderContext,
+  headerLine: ParsedLine,
 ): AsyncGenerator<JsonStreamEvent> {
   yield { type: 'startArray', length: header.length }
 
   // Inline primitive array
   if (inlineValues) {
-    yield* decodeInlinePrimitiveArraySync(header, inlineValues, options)
+    yield* decodeInlinePrimitiveArraySync(header, inlineValues, options, headerLine)
     yield { type: 'endArray' }
     return
   }
 
   // Tabular array
   if (header.fields && header.fields.length > 0) {
-    yield* decodeTabularArrayAsync(header, cursor, baseDepth, options)
+    yield* decodeTabularArrayAsync(header, cursor, baseDepth, options, headerLine)
     yield { type: 'endArray' }
     return
   }
 
   // List array
-  yield* decodeListArrayAsync(header, cursor, baseDepth, options)
+  yield* decodeListArrayAsync(header, cursor, baseDepth, options, headerLine)
   yield { type: 'endArray' }
 }
 
@@ -683,11 +703,13 @@ async function* decodeTabularArrayAsync(
   cursor: StreamingLineCursor,
   baseDepth: Depth,
   options: DecoderContext,
+  headerLine: ParsedLine,
 ): AsyncGenerator<JsonStreamEvent> {
   const rowDepth = baseDepth + 1
   let rowCount = 0
   let startLine: number | undefined
   let endLine: number | undefined
+  let lastRowLine: ParsedLine = headerLine
 
   while (!(await cursor.atEnd()) && rowCount < header.length) {
     const line = await cursor.peek()
@@ -700,12 +722,13 @@ async function* decodeTabularArrayAsync(
         startLine = line.lineNumber
       }
       endLine = line.lineNumber
+      lastRowLine = line
 
       await cursor.advance()
-      const values = parseDelimitedValues(line.content, header.delimiter)
-      assertExpectedCount(values.length, header.fields!.length, 'tabular row values', options)
+      const values = withLine(line, () => parseDelimitedValues(line.content, header.delimiter))
+      assertExpectedCount(values.length, header.fields!.length, 'tabular row values', options, line)
 
-      const primitives = mapRowValuesToPrimitives(values)
+      const primitives = withLine(line, () => mapRowValuesToPrimitives(values))
       yield* yieldObjectFromFields(header.fields!, primitives)
 
       rowCount++
@@ -715,7 +738,7 @@ async function* decodeTabularArrayAsync(
     }
   }
 
-  assertExpectedCount(rowCount, header.length, 'tabular rows', options)
+  assertExpectedCount(rowCount, header.length, 'tabular rows', options, lastRowLine)
 
   if (options.strict && startLine !== undefined && endLine !== undefined) {
     validateNoBlankLinesInRange(startLine, endLine, cursor.getBlankLines(), options.strict, 'tabular array')
@@ -732,11 +755,13 @@ async function* decodeListArrayAsync(
   cursor: StreamingLineCursor,
   baseDepth: Depth,
   options: DecoderContext,
+  headerLine: ParsedLine,
 ): AsyncGenerator<JsonStreamEvent> {
   const itemDepth = baseDepth + 1
   let itemCount = 0
   let startLine: number | undefined
   let endLine: number | undefined
+  let lastItemLine: ParsedLine = headerLine
 
   while (!(await cursor.atEnd()) && itemCount < header.length) {
     const line = await cursor.peek()
@@ -751,12 +776,14 @@ async function* decodeListArrayAsync(
         startLine = line.lineNumber
       }
       endLine = line.lineNumber
+      lastItemLine = line
 
       yield* decodeListItemAsync(cursor, itemDepth, options)
 
       const currentLine = cursor.current()
       if (currentLine) {
         endLine = currentLine.lineNumber
+        lastItemLine = currentLine
       }
 
       itemCount++
@@ -766,7 +793,7 @@ async function* decodeListArrayAsync(
     }
   }
 
-  assertExpectedCount(itemCount, header.length, 'list array items', options)
+  assertExpectedCount(itemCount, header.length, 'list array items', options, lastItemLine)
 
   if (options.strict && startLine !== undefined && endLine !== undefined) {
     validateNoBlankLinesInRange(startLine, endLine, cursor.getBlankLines(), options.strict, 'list array')
@@ -800,7 +827,10 @@ async function* decodeListItemAsync(
     afterHyphen = line.content.slice(LIST_ITEM_PREFIX.length)
   }
   else {
-    throw new SyntaxError(`Expected list item to start with "${LIST_ITEM_PREFIX}"`)
+    throw new ToonDecodeError(
+      `Expected list item to start with "${LIST_ITEM_PREFIX}"`,
+      { line: line.lineNumber, source: line.raw },
+    )
   }
 
   if (!afterHyphen.trim()) {
@@ -809,17 +839,19 @@ async function* decodeListItemAsync(
     return
   }
 
+  const itemLine: ParsedLine = { ...line, content: afterHyphen }
+
   // Check for array header after hyphen
   if (isArrayHeaderContent(afterHyphen)) {
-    const arrayHeader = parseArrayHeaderLine(afterHyphen, DEFAULT_DELIMITER)
+    const arrayHeader = withLine(itemLine, () => parseArrayHeaderLine(afterHyphen, DEFAULT_DELIMITER))
     if (arrayHeader) {
-      yield* decodeArrayFromHeaderAsync(arrayHeader.header, arrayHeader.inlineValues, cursor, baseDepth, options)
+      yield* decodeArrayFromHeaderAsync(arrayHeader.header, arrayHeader.inlineValues, cursor, baseDepth, options, itemLine)
       return
     }
   }
 
   // Check for tabular-first list-item object: `- key[N]{fields}:`
-  const headerInfo = parseArrayHeaderLine(afterHyphen, DEFAULT_DELIMITER)
+  const headerInfo = withLine(itemLine, () => parseArrayHeaderLine(afterHyphen, DEFAULT_DELIMITER))
   if (headerInfo && headerInfo.header.key !== undefined && headerInfo.header.fields !== undefined) {
     // Object with tabular array as first field
     const header = headerInfo.header
@@ -827,7 +859,7 @@ async function* decodeListItemAsync(
     yield { type: 'key', key: header.key! }
 
     // Use baseDepth + 1 for the array so rows are at baseDepth + 2
-    yield* decodeArrayFromHeaderAsync(header, headerInfo.inlineValues, cursor, baseDepth + 1, options)
+    yield* decodeArrayFromHeaderAsync(header, headerInfo.inlineValues, cursor, baseDepth + 1, options, itemLine)
 
     // Read sibling fields at depth = baseDepth + 1
     const followDepth = baseDepth + 1
@@ -839,7 +871,7 @@ async function* decodeListItemAsync(
 
       if (nextLine.depth === followDepth && !nextLine.content.startsWith(LIST_ITEM_PREFIX)) {
         await cursor.advance()
-        yield* decodeKeyValueAsync(nextLine.content, cursor, followDepth, options)
+        yield* decodeKeyValueAsync(nextLine, cursor, followDepth, options)
       }
       else {
         break
@@ -853,7 +885,7 @@ async function* decodeListItemAsync(
   // Check for object first field after hyphen
   if (isKeyValueContent(afterHyphen)) {
     yield { type: 'startObject' }
-    yield* decodeKeyValueAsync(afterHyphen, cursor, baseDepth + 1, options)
+    yield* decodeKeyValueAsync(itemLine, cursor, baseDepth + 1, options)
 
     // Read subsequent fields
     const followDepth = baseDepth + 1
@@ -865,7 +897,7 @@ async function* decodeListItemAsync(
 
       if (nextLine.depth === followDepth && !nextLine.content.startsWith(LIST_ITEM_PREFIX)) {
         await cursor.advance()
-        yield* decodeKeyValueAsync(nextLine.content, cursor, followDepth, options)
+        yield* decodeKeyValueAsync(nextLine, cursor, followDepth, options)
       }
       else {
         break
@@ -877,7 +909,7 @@ async function* decodeListItemAsync(
   }
 
   // Primitive value
-  yield { type: 'primitive', value: parsePrimitiveToken(afterHyphen) }
+  yield { type: 'primitive', value: withLine(itemLine, () => parsePrimitiveToken(afterHyphen)) }
 }
 
 // #endregion

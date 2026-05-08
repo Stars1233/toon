@@ -1,5 +1,6 @@
 import type { BlankLineInfo, Depth, ParsedLine } from '../types.ts'
 import { SPACE, TAB } from '../constants.ts'
+import { ToonDecodeError } from './errors.ts'
 
 // #region Scan state
 
@@ -58,13 +59,17 @@ export function parseLineIncremental(
 
     // Check for tabs in leading whitespace (before actual content)
     if (raw.slice(0, whitespaceEndIndex).includes(TAB)) {
-      throw new SyntaxError(`Line ${lineNumber}: Tabs are not allowed in indentation in strict mode`)
+      throw new ToonDecodeError(
+        'Tabs are not allowed in indentation in strict mode',
+        { line: lineNumber, source: raw },
+      )
     }
 
     // Check for exact multiples of indentSize
     if (indent > 0 && indent % indentSize !== 0) {
-      throw new SyntaxError(
-        `Line ${lineNumber}: Indentation must be exact multiple of ${indentSize}, but found ${indent} spaces`,
+      throw new ToonDecodeError(
+        `Indentation must be exact multiple of ${indentSize}, but found ${indent} spaces`,
+        { line: lineNumber, source: raw },
       )
     }
   }

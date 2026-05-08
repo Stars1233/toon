@@ -1,5 +1,6 @@
 import type { ArrayHeaderInfo, BlankLineInfo, Delimiter, Depth, ParsedLine } from '../types.ts'
 import { COLON, LIST_ITEM_PREFIX } from '../constants.ts'
+import { ToonDecodeError } from './errors.ts'
 
 // #region Count and structure validation
 
@@ -11,9 +12,13 @@ export function assertExpectedCount(
   expected: number,
   itemType: string,
   options: { strict: boolean },
+  line: ParsedLine,
 ): void {
   if (options.strict && actual !== expected) {
-    throw new RangeError(`Expected ${expected} ${itemType}, but got ${actual}`)
+    throw new ToonDecodeError(
+      `Expected ${expected} ${itemType}, but got ${actual}`,
+      { line: line.lineNumber, source: line.raw },
+    )
   }
 }
 
@@ -26,7 +31,10 @@ export function validateNoExtraListItems(
   expectedCount: number,
 ): void {
   if (nextLine?.depth === itemDepth && nextLine.content.startsWith(LIST_ITEM_PREFIX)) {
-    throw new RangeError(`Expected ${expectedCount} list array items, but found more`)
+    throw new ToonDecodeError(
+      `Expected ${expectedCount} list array items, but found more`,
+      { line: nextLine.lineNumber, source: nextLine.raw },
+    )
   }
 }
 
@@ -43,7 +51,10 @@ export function validateNoExtraTabularRows(
     && !nextLine.content.startsWith(LIST_ITEM_PREFIX)
     && isDataRow(nextLine.content, header.delimiter)
   ) {
-    throw new RangeError(`Expected ${header.length} tabular rows, but found more`)
+    throw new ToonDecodeError(
+      `Expected ${header.length} tabular rows, but found more`,
+      { line: nextLine.lineNumber, source: nextLine.raw },
+    )
   }
 }
 
@@ -66,8 +77,9 @@ export function validateNoBlankLinesInRange(
   )
 
   if (firstBlank) {
-    throw new SyntaxError(
-      `Line ${firstBlank.lineNumber}: Blank lines inside ${context} are not allowed in strict mode`,
+    throw new ToonDecodeError(
+      `Blank lines inside ${context} are not allowed in strict mode`,
+      { line: firstBlank.lineNumber },
     )
   }
 }

@@ -8,6 +8,7 @@ import { normalizeValue } from './encode/normalize.ts'
 import { applyReplacer } from './encode/replacer.ts'
 
 export { DEFAULT_DELIMITER, DELIMITERS } from './constants.ts'
+export { ToonDecodeError } from './decode/errors.ts'
 export type {
   DecodeOptions,
   DecodeStreamOptions,
