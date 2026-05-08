@@ -1,7 +1,7 @@
 {
   "name": "@toon-format/toon",
   "type": "module",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "packageManager": "pnpm@10.33.4",
   "description": "Token-Oriented Object Notation (TOON) – Compact, human-readable, schema-aware encoding of JSON for LLM prompts",
   "author": "Johann Schopplich <hello@johannschopplich.com>",
