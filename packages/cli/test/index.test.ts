@@ -230,6 +230,48 @@ describe('toon CLI', () => {
         cleanup()
       }
     })
+
+    it('renders a TOON decode error with line context, source, and caret', async () => {
+      const cleanup = mockStdin('a:\n\tb: 1\n')
+
+      const consolaError = vi.spyOn(consola, 'error').mockImplementation(() => undefined)
+      const exitSpy = vi.mocked(process.exit)
+
+      try {
+        await runCli({ rawArgs: ['--decode'] })
+
+        expect(exitSpy).toHaveBeenCalledWith(1)
+        const errorCall = consolaError.mock.calls.at(0)
+        expect(errorCall).toBeDefined()
+        const [rendered] = errorCall!
+        expect(rendered).toEqual(expect.stringContaining('Failed to decode TOON at line 2:'))
+        expect(rendered).toEqual(expect.stringContaining('  2 | →b: 1'))
+        expect(rendered).toEqual(expect.stringContaining('      ^'))
+        expect(rendered).not.toEqual(expect.stringMatching(/^\s+at \S+/m))
+      }
+      finally {
+        cleanup()
+      }
+    })
+
+    it('includes the stack trace when --verbose is passed', async () => {
+      const cleanup = mockStdin('a:\n\tb: 1\n')
+
+      const consolaError = vi.spyOn(consola, 'error').mockImplementation(() => undefined)
+
+      try {
+        await runCli({ rawArgs: ['--decode', '--verbose'] })
+
+        const errorCall = consolaError.mock.calls.at(0)
+        expect(errorCall).toBeDefined()
+        const [rendered] = errorCall!
+        expect(rendered).toEqual(expect.stringContaining('Failed to decode TOON at line 2:'))
+        expect(rendered).toEqual(expect.stringMatching(/at \S+/))
+      }
+      finally {
+        cleanup()
+      }
+    })
   })
 
   describe('stdin with options', () => {

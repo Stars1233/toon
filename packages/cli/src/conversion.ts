@@ -85,38 +85,27 @@ export async function decodeToJson(config: {
   if (config.expandPaths === 'safe') {
     const toonContent = await readInput(config.input)
 
-    let data: unknown
-    try {
-      const decodeOptions: DecodeOptions = {
-        indent: config.indent,
-        strict: config.strict,
-        expandPaths: config.expandPaths,
-      }
-      data = decode(toonContent, decodeOptions)
+    const decodeOptions: DecodeOptions = {
+      indent: config.indent,
+      strict: config.strict,
+      expandPaths: config.expandPaths,
     }
-    catch (error) {
-      throw new Error(`Failed to decode TOON: ${error instanceof Error ? error.message : String(error)}`)
-    }
+    const data = decode(toonContent, decodeOptions)
 
     await writeStreamingJson(jsonStringifyLines(data, config.indent), config.output)
   }
   else {
-    try {
-      const lineSource = readLinesFromSource(config.input)
+    const lineSource = readLinesFromSource(config.input)
 
-      const decodeStreamOptions: DecodeStreamOptions = {
-        indent: config.indent,
-        strict: config.strict,
-      }
-
-      const events = decodeStream(lineSource, decodeStreamOptions)
-      const jsonChunks = jsonStreamFromEvents(events, config.indent)
-
-      await writeStreamingJson(jsonChunks, config.output)
+    const decodeStreamOptions: DecodeStreamOptions = {
+      indent: config.indent,
+      strict: config.strict,
     }
-    catch (error) {
-      throw new Error(`Failed to decode TOON: ${error instanceof Error ? error.message : String(error)}`)
-    }
+
+    const events = decodeStream(lineSource, decodeStreamOptions)
+    const jsonChunks = jsonStreamFromEvents(events, config.indent)
+
+    await writeStreamingJson(jsonChunks, config.output)
   }
 
   if (config.output) {

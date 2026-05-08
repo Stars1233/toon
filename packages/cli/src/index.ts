@@ -8,6 +8,7 @@ import { consola } from 'consola'
 import { DEFAULT_DELIMITER, DELIMITERS } from '../../toon/src/index.ts'
 import pkg from '../package.json' with { type: 'json' }
 import { decodeToJson, encodeToToon } from './conversion.ts'
+import { formatError } from './format-error.ts'
 import { detectMode } from './utils.ts'
 
 const { name, version } = pkg
@@ -65,6 +66,11 @@ const args: ArgsDef = {
   stats: {
     type: 'boolean',
     description: 'Show token statistics',
+    default: false,
+  },
+  verbose: {
+    type: 'boolean',
+    description: 'Show full stack traces and cause chains for errors',
     default: false,
   },
 } as const
@@ -142,7 +148,7 @@ export const mainCommand: CommandDef<ArgsDef> = defineCommand({
       }
     }
     catch (error) {
-      consola.error(error)
+      consola.error(formatError(error, { isVerbose: args.verbose === true }))
       process.exit(1)
     }
   },
