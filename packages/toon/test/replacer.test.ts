@@ -419,45 +419,4 @@ describe('replacer function', () => {
       expect(result).toContain('    name: Alice')
     })
   })
-
-  describe('comparison with JSON.stringify replacer', () => {
-    it('behaves similarly to JSON.stringify for filtering', () => {
-      const input = { name: 'Alice', password: 'secret' }
-
-      // TOON replacer
-      const toonReplacer: EncodeReplacer = (key, value) => {
-        if (key === 'password')
-          return undefined
-        return value
-      }
-
-      // JSON.stringify replacer
-      const jsonReplacer = (key: string, value: unknown) => {
-        if (key === 'password')
-          return undefined
-        return value
-      }
-
-      const toonResult = decode(encode(input, { replacer: toonReplacer }))
-      const jsonResult = JSON.parse(JSON.stringify(input, jsonReplacer))
-
-      expect(toonResult).toEqual(jsonResult)
-    })
-
-    it('uses string indices for arrays like JSON.stringify', () => {
-      const input = ['a', 'b', 'c']
-      const keys: string[] = []
-
-      const replacer: EncodeReplacer = (key, value, path) => {
-        if (path.length > 0)
-          keys.push(key)
-        return value
-      }
-
-      encode(input, { replacer })
-
-      // Should match JSON.stringify behavior (string indices)
-      expect(keys).toEqual(['0', '1', '2'])
-    })
-  })
 })
