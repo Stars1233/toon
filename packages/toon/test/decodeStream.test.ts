@@ -187,9 +187,9 @@ describe('streaming decode', () => {
     for (const { name, input } of equivalenceCases) {
       it(`emits the same events as decodeStreamSync for ${name}`, async () => {
         const lines = input === '' ? [] : input.split('\n')
-        const sync = Array.from(decodeStreamSync(lines))
-        const async = await collect(decodeStream(asyncLines(lines)))
-        expect(async).toEqual(sync)
+        const syncResult = Array.from(decodeStreamSync(lines))
+        const asyncResult = await collect(decodeStream(asyncLines(lines)))
+        expect(asyncResult).toEqual(syncResult)
       })
     }
 
@@ -312,9 +312,9 @@ describe('streaming decode', () => {
       ]
 
       for (const events of cases) {
-        const sync = buildValueFromEvents(events)
-        const async = await buildValueFromEventsAsync(asyncEvents(events))
-        expect(async).toEqual(sync)
+        const syncResult = buildValueFromEvents(events)
+        const asyncResult = await buildValueFromEventsAsync(asyncEvents(events))
+        expect(asyncResult).toEqual(syncResult)
       }
     })
 

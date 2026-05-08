@@ -22,7 +22,6 @@ describe('replacer function', () => {
     it('removes array elements by returning undefined', () => {
       const input = [1, 2, 3, 4, 5]
       const replacer: EncodeReplacer = (key, value) => {
-        // Remove even numbers (key is index as string)
         if (typeof value === 'number' && value % 2 === 0)
           return undefined
         return value
@@ -63,7 +62,6 @@ describe('replacer function', () => {
     it('transforms primitive values', () => {
       const input = { name: 'alice', age: 30 }
       const replacer: EncodeReplacer = (key, value) => {
-        // Uppercase all strings
         if (typeof value === 'string')
           return value.toUpperCase()
         return value
@@ -78,7 +76,6 @@ describe('replacer function', () => {
     it('transforms objects', () => {
       const input = { user: { name: 'Alice' } }
       const replacer: EncodeReplacer = (key, value, path) => {
-        // Add metadata to all objects at depth 1
         if (path.length === 1 && typeof value === 'object' && value !== null && !Array.isArray(value)) {
           return { ...value as object, _id: `${key}_123` }
         }
@@ -96,7 +93,6 @@ describe('replacer function', () => {
     it('transforms arrays', () => {
       const input = { numbers: [1, 2, 3] }
       const replacer: EncodeReplacer = (key, value) => {
-        // Double all numbers
         if (typeof value === 'number')
           return value * 2
         return value
@@ -147,7 +143,6 @@ describe('replacer function', () => {
     it('does not omit root when replacer returns undefined', () => {
       const input = { name: 'Alice' }
       const replacer: EncodeReplacer = (key, value, path) => {
-        // Try to omit root (should be ignored)
         if (path.length === 0)
           return undefined
         return value
@@ -156,7 +151,6 @@ describe('replacer function', () => {
       const result = encode(input, { replacer })
       const decoded = decode(result)
 
-      // Root should still be encoded
       expect(decoded).toEqual({ name: 'Alice' })
     })
 
@@ -183,7 +177,6 @@ describe('replacer function', () => {
 
       encode(input, { replacer })
 
-      // First call should be root
       expect(calls[0]).toEqual({ key: '', path: [] })
     })
   })
@@ -225,7 +218,6 @@ describe('replacer function', () => {
 
       encode(input, { replacer })
 
-      // Array indices should be string '0', '1', '2'
       expect(seenKeys).toEqual(['0', '1', '2'])
     })
 
@@ -297,7 +289,6 @@ describe('replacer function', () => {
       const result = encode(input, { replacer })
       const decoded = decode(result) as JsonObject
 
-      // Date should be normalized to ISO string
       expect(typeof decoded.date).toBe('string')
       expect(decoded.date).toMatch(/^\d{4}-\d{2}-\d{2}T/)
     })
@@ -305,7 +296,6 @@ describe('replacer function', () => {
     it('handles all properties being filtered out', () => {
       const input = { a: 1, b: 2, c: 3 }
       const replacer: EncodeReplacer = (key, value, path) => {
-        // Filter out all properties (but not root)
         if (path.length > 0)
           return undefined
         return value
@@ -314,14 +304,12 @@ describe('replacer function', () => {
       const result = encode(input, { replacer })
       const decoded = decode(result)
 
-      // Should result in empty object
       expect(decoded).toEqual({})
     })
 
     it('handles all array elements being filtered out', () => {
       const input = [1, 2, 3]
       const replacer: EncodeReplacer = (key, value, path) => {
-        // Filter out all elements
         if (path.length > 0)
           return undefined
         return value
@@ -330,7 +318,6 @@ describe('replacer function', () => {
       const result = encode(input, { replacer })
       const decoded = decode(result)
 
-      // Should result in empty array
       expect(decoded).toEqual([])
     })
 
@@ -363,7 +350,6 @@ describe('replacer function', () => {
     it('handles arrays with some elements removed', () => {
       const input = { items: [{ id: 1, keep: true }, { id: 2, keep: false }, { id: 3, keep: true }] }
       const replacer: EncodeReplacer = (key, value) => {
-        // Remove objects where keep is false
         if (typeof value === 'object' && value !== null && !Array.isArray(value) && 'keep' in value && value.keep === false) {
           return undefined
         }
@@ -415,7 +401,6 @@ describe('replacer function', () => {
       const replacer: EncodeReplacer = (key, value) => value
 
       const result = encode(input, { replacer, indent: 4 })
-      // Should use 4-space indent
       expect(result).toContain('    name: Alice')
     })
   })
