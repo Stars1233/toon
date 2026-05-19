@@ -71,8 +71,8 @@ export function isSafeUnquoted(value: string, delimiter: string = DEFAULT_DELIMI
     return false
   }
 
-  // Check for control characters (newline, carriage return, tab - always need quoting/escaping)
-  if (/[\n\r\t]/.test(value)) {
+  // Check for control characters (any U+0000–U+001F always need quoting/escaping)
+  if (/[\u0000-\u001f]/.test(value)) {
     return false
   }
 

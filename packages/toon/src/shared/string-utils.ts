@@ -5,6 +5,7 @@ import { BACKSLASH, CARRIAGE_RETURN, DOUBLE_QUOTE, NEWLINE, TAB } from '../const
  *
  * @remarks
  * Handles backslashes, quotes, newlines, carriage returns, and tabs.
+ * Other U+0000–U+001F control characters are emitted as `\uXXXX`.
  */
 export function escapeString(value: string): string {
   return value
@@ -13,13 +14,15 @@ export function escapeString(value: string): string {
     .replace(/\n/g, `${BACKSLASH}n`)
     .replace(/\r/g, `${BACKSLASH}r`)
     .replace(/\t/g, `${BACKSLASH}t`)
+    .replace(/[\u0000-\u001f]/g, c => `${BACKSLASH}u${c.charCodeAt(0).toString(16).padStart(4, '0')}`)
 }
 
 /**
  * Unescapes a string by processing escape sequences.
  *
  * @remarks
- * Handles `\n`, `\t`, `\r`, `\\`, and `\"` escape sequences.
+ * Handles `\n`, `\t`, `\r`, `\\`, `\"`, and `\uXXXX` escape sequences.
+ * Lone surrogates in `\uXXXX` are rejected.
  */
 export function unescapeString(value: string): string {
   let unescaped = ''
@@ -55,6 +58,22 @@ export function unescapeString(value: string): string {
       if (next === DOUBLE_QUOTE) {
         unescaped += DOUBLE_QUOTE
         i += 2
+        continue
+      }
+      if (next === 'u') {
+        if (i + 6 > value.length) {
+          throw new SyntaxError(`Invalid escape sequence: truncated \\u escape at "${value.slice(i, i + 6)}"`)
+        }
+        const hex = value.slice(i + 2, i + 6)
+        if (!/^[0-9a-f]{4}$/i.test(hex)) {
+          throw new SyntaxError(`Invalid escape sequence: \\u must be followed by 4 hex digits, got "${hex}"`)
+        }
+        const codeUnit = Number.parseInt(hex, 16)
+        if (codeUnit >= 0xD800 && codeUnit <= 0xDFFF) {
+          throw new SyntaxError(`Invalid escape sequence: \\u${hex} is a lone surrogate; supplementary code points MUST appear as literal UTF-8`)
+        }
+        unescaped += String.fromCodePoint(codeUnit)
+        i += 6
         continue
       }
 
