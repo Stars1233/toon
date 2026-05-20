@@ -226,7 +226,7 @@ items[2|]{sku|name|qty|price}:
 
 :::
 
-Tab and pipe delimiters are explicitly encoded in the header brackets and field braces. Commas don't require quoting when tab or pipe is active, and vice versa.
+Tab and pipe delimiters are explicitly encoded in the header brackets and field braces. Inside an array scope, only the active delimiter triggers quoting – the others are literal data. Object field values (`key: value`) follow the document delimiter (§11.1) regardless of any surrounding array's active delimiter.
 
 > [!TIP]
 > Tab delimiters often tokenize more efficiently than commas, especially for data with few quoted strings. Use `encode(data, { delimiter: '\t' })` for additional token savings.
@@ -305,7 +305,7 @@ TOON quotes strings **only when necessary** to maximize token efficiency. A stri
 - It's empty (`""`)
 - It has leading or trailing whitespace
 - It equals `true`, `false`, or `null` (case-sensitive)
-- It looks like a number (e.g., `"42"`, `"-3.14"`, `"1e-6"`, or `"05"` with leading zeros)
+- It looks like a number (e.g., `"42"`, `"-3.14"`, `"1e-6"`, `"05"`)
 - It contains special characters: colon (`:`), quote (`"`), backslash (`\`), brackets, braces, or any control character in U+0000–U+001F
 - It contains the relevant delimiter (the active delimiter inside an array scope, or the document delimiter elsewhere)
 - It equals `"-"` or starts with `"-"` followed by any character
@@ -330,7 +330,7 @@ In quoted strings and keys, six escape sequences are valid:
 | Tab (U+0009) | `\t` |
 | Any other U+0000–U+001F control character | `\uXXXX` |
 
-Other escapes (e.g., `\x`, `\0`, `\b`) cause an error in strict mode, and lone-surrogate `\uXXXX` values (U+D800–U+DFFF) are always rejected.
+Other escapes (e.g., `\x`, `\0`, `\b`) are always rejected, as are lone-surrogate `\uXXXX` values (U+D800–U+DFFF).
 
 ### Type Conversions
 

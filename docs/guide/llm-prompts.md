@@ -87,7 +87,7 @@ catch (error) {
 }
 ```
 
-Strict mode checks counts, indentation, and escaping so you can detect truncation or malformed TOON. For complete details, see the [API Reference](/reference/api#decode).
+Strict mode checks counts, indentation, and escaping so you can detect truncation or malformed TOON. For complete details, see the [API Reference](/reference/api#decode-input-options).
 
 ## Delimiter Choices for Token Efficiency
 
@@ -117,10 +117,10 @@ for (const line of encodeLines(largeData, { delimiter: '\t' })) {
 The CLI also supports streaming for memory-efficient JSON-to-TOON conversion:
 
 ```bash
-toon large-dataset.json --output output.toon
+toon large-dataset.json -o output.toon
 ```
 
-This streaming approach prevents out-of-memory errors when preparing large context windows for LLMs. For complete details on `encodeLines()`, see the [API Reference](/reference/api#encodelines).
+This streaming approach prevents out-of-memory errors when preparing large context windows for LLMs. For complete details on `encodeLines()`, see the [API Reference](/reference/api#encodelines-input-options).
 
 **Consuming streaming LLM outputs:** If your LLM client exposes streaming text and you buffer by lines, you can decode TOON incrementally:
 

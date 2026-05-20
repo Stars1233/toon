@@ -205,7 +205,7 @@ enabled: "true"
 
 These strings must be quoted because they look like numbers/booleans.
 
-### Strings with Active Delimiter
+### Strings Containing Delimiters
 
 ::: code-group
 
@@ -221,7 +221,7 @@ note: "hello, world"
 
 :::
 
-Strings containing the active delimiter (comma by default) must be quoted.
+Strings must be quoted when they contain the active delimiter (inside an array scope) or the document delimiter (object field values, comma by default).
 
 ### Strings with Leading/Trailing Spaces
 
@@ -264,7 +264,7 @@ Strings **must** be quoted if they:
 - Equal `true`, `false`, or `null` (case-sensitive)
 - Look like numbers (e.g., `"42"`, `"-3.14"`, `"1e-6"`, `"05"`)
 - Contain special characters: `:`, `"`, `\`, `[`, `]`, `{`, `}`, or any control character (U+0000–U+001F, including newline/tab/CR)
-- Contain the active delimiter (comma by default, or tab/pipe if declared in header)
+- Contain the relevant delimiter – the active delimiter inside an array scope, or the document delimiter (comma by default) for object field values
 - Equal `"-"` or start with `"-"` followed by any character
 
 Otherwise, strings can be unquoted. Unicode and emoji are safe:

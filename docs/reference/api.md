@@ -588,10 +588,10 @@ By default (`strict: true`), the decoder validates input strictly:
 - **Invalid escape sequences**: Throws on `\x`, unterminated strings, lone-surrogate `\uXXXX`
 - **Syntax errors**: Throws on missing colons, malformed headers
 - **Array length mismatches**: Throws when declared length doesn't match actual count
-- **Delimiter mismatches**: Throws when row delimiters don't match header, or when the bracket-declared delimiter doesn't match the field list
+- **Header delimiter mismatch**: Throws when the bracket-declared delimiter differs from the field-list delimiter (§14.2)
 - **Indentation errors**: Throws when leading spaces aren't exact multiples of `indent`
 - **Header structure**: Throws on leading-zero or non-integer array lengths and on intervening content between bracket/fields/colon
-- **Duplicate sibling keys**: Throws when an object has two children with the same key
+- **Duplicate sibling keys**: Throws when an object has two children with the same key (§14.4)
 - **Path-expansion conflicts**: When `expandPaths: 'safe'` is set, throws on overlapping dotted paths that would collide
 
 All decode errors are thrown as [`ToonDecodeError`](#error-handling) instances with structured `line` and `source` fields.

@@ -22,7 +22,7 @@ The spec defines a provisional media type and file extension in [§17](https://g
 - **Media type:** `text/toon` (provisional, not yet IANA‑registered; UTF‑8 only)
 - **File extension:** `.toon`
 
-TOON documents are always UTF‑8 with LF (`\n`) line endings; the optional `charset` parameter, when present, MUST be `utf-8` per the spec.
+TOON documents are always UTF‑8 with LF (`\n`) line endings; the optional `charset` parameter, when present, is `utf-8`.
 
 ## Guided Tour of the Spec
 
@@ -49,7 +49,7 @@ Defines TOON's line-oriented, indentation-based notation and how to determine wh
 Normative ABNF grammar for array headers: `key[N<delim?>]{fields}:`. Specifies bracket segments, delimiter symbols, and field lists.
 
 [§7 Strings and Keys](https://github.com/toon-format/spec/blob/main/SPEC.md#7-strings-and-keys):
-Complete quoting rules (when strings MUST be quoted), escape sequences (only `\\`, `\"`, `\n`, `\r`, `\t` are valid), and key encoding requirements.
+Complete quoting rules (when strings MUST be quoted), escape sequences (only `\\`, `\"`, `\n`, `\r`, `\t`, and `\uXXXX` for other U+0000–U+001F controls are valid), and key encoding requirements.
 
 [§8 Objects](https://github.com/toon-format/spec/blob/main/SPEC.md#8-objects):
 Object field encoding (key: value), nesting rules, key order preservation, and empty object handling.
@@ -104,15 +104,15 @@ Reference test suite at [github.com/toon-format/spec/tree/main/tests](https://gi
 
 | Section | Topic | When to Read |
 |---------|-------|--------------|
-| §1-4 | Data model, normalization, decoding | Implementing encoders/decoders |
-| §5-6 | Syntax, headers, root form | Implementing parsers |
+| §1–4 | Data model, normalization, decoding | Implementing encoders/decoders |
+| §5–6 | Syntax, headers, root form | Implementing parsers |
 | §7 | Strings, keys, quoting, escaping | Implementing string handling |
-| §8-10 | Objects, arrays, list items | Implementing structure encoding |
-| §11-12 | Delimiters, indentation, whitespace | Implementing formatting and validation |
+| §8–10 | Objects, arrays, list items | Implementing structure encoding |
+| §11–12 | Delimiters, indentation, whitespace | Implementing formatting and validation |
 | §13 | Conformance, options, key folding/path expansion | Implementing options and features |
 | §14 | Strict-mode errors | Implementing validators |
-| §15-16 | Security, internationalization | Operational considerations |
-| §17-19 | IANA, versioning, IP | Ecosystem and licensing |
+| §15–16 | Security, internationalization | Operational considerations |
+| §17–19 | IANA, versioning, IP | Ecosystem and licensing |
 
 ## Conformance Checklists
 

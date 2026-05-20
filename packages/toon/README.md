@@ -136,12 +136,10 @@ hikes[3]{id,name,distanceKm,elevationGain,companion,wasSunny}:
 
 ## What's New in v3.2
 
-- Empty arrays now encode as `key: []` (and `[]` at the root) instead of the legacy `key[0]:` header. The legacy form still decodes.
 - Strict mode rejects duplicate sibling keys; with `strict: false` the last value wins.
 - Malformed array headers (`[03]`, `[1] foo:`, header/field delimiter mismatch) error in strict mode instead of silently degrading.
 - Tabular form excludes arrays that contain an empty `{}` element – those fall back to the expanded list form.
 - Nested arrays-of-objects can appear as list items via an explicit `- [N]:` header.
-- `\uXXXX` escapes are emitted for U+0000–U+001F control characters outside `\n`, `\r`, `\t`, and accepted on decode.
 
 ## Media Type & File Extension
 
