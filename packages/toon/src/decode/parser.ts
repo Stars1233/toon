@@ -53,11 +53,14 @@ export function parseArrayHeaderLine(
   // Check for fields segment (braces come after bracket)
   const braceStart = content.indexOf(OPEN_BRACE, bracketEnd)
   if (braceStart !== -1 && braceStart < content.indexOf(COLON, bracketEnd)) {
-    // Validate: no extraneous content between bracket end and brace start
     const gapBeforeBrace = content.slice(bracketEnd + 1, braceStart)
-    if (gapBeforeBrace.trim() !== '') {
-      if (strict)
-        throw new SyntaxError(`Unexpected content "${gapBeforeBrace.trim()}" between bracket and fields segment`)
+    if (gapBeforeBrace !== '') {
+      if (strict) {
+        const trimmedGap = gapBeforeBrace.trim()
+        throw new SyntaxError(trimmedGap === ''
+          ? `Unexpected whitespace between bracket and fields segment`
+          : `Unexpected content "${trimmedGap}" between bracket and fields segment`)
+      }
       return
     }
 
@@ -73,12 +76,15 @@ export function parseArrayHeaderLine(
     return
   }
 
-  // Validate: no extraneous content between bracket/fields end and colon
   const gapStart = Math.max(bracketEnd + 1, braceEnd)
   const gapBeforeColon = content.slice(gapStart, colonIndex)
-  if (gapBeforeColon.trim() !== '') {
-    if (strict)
-      throw new SyntaxError(`Unexpected content "${gapBeforeColon.trim()}" between bracket segment and colon`)
+  if (gapBeforeColon !== '') {
+    if (strict) {
+      const trimmedGap = gapBeforeColon.trim()
+      throw new SyntaxError(trimmedGap === ''
+        ? `Unexpected whitespace between bracket segment and colon`
+        : `Unexpected content "${trimmedGap}" between bracket segment and colon`)
+    }
     return
   }
 
